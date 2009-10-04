@@ -1,0 +1,190 @@
+Title: Daemonized solr updates plugin
+Summary:
+
+    Description of the features, requirements and changes needed to daemonize
+    the process of updating the index (solr updates). Describes how it will be
+    done and why.
+
+
+Content:
+
+    FEATURES:
+        - Less connections to the index as we can merge the updates in one POST
+        action (batch updates)
+        - Model instance insert/update/delete does not have to connect to Solr.
+        This causes some side-effects:
+            - Lower response times (client-side point of view) (Good).
+            - Searches will reflect changes later. (Bad, but it's worth)
+        - Keep order in index operations. (discussed after)
+        - Good log and messages to allow debugging.
+        - More than one updating process can run concurrently. In case a update
+        task is runned and another starts, it will work as expected.
+
+    So,
+
+    to allow the acts_as_plugin to be more efficient and less payload in each
+    user request, the update to the index should not be done in the thread that
+    processes the user action (request).
+
+    To do that, the user request has to write [somewhere] that that instance needs
+    to be updated on the index.
+
+    The [somewhere] has to be a place accessible and persistent for all rails
+    instances. There are 2 candidates at first: filesystem and database.
+
+    Chosen database as it's easier when deploying to various machines. The
+    filesystem would require to define a remote shared filesytem.
+
+    THE PROCESS
+
+    The process expected is that the instance gets changed on database, and the
+    change is registered in the database [somehwere]. Also we register in
+    [some way] the need of the instance to be updated.
+
+    The daemon looks for pending operations and executes them in batch.
+
+    On inserts and updates, they can be done in batch joining a bunch of
+    them together. On the other side are the delete operations that cannot be
+    joined to the updates/inserts.
+
+    Based on this reasoning, we can deduce that the information saying:
+        "instance 123 needs to be updated"
+    cannot be saved on the model table, as we want to distinguish between
+    inserts/updates and deletes. Even, when we delete a record, it would no
+    longer exist on the model table.
+
+    So, we need another table to store that tasks. That table will have to store
+    the model, the instance, and the action to be done. Other fields will appear
+    on the way.
+
+    The SolrUpdate model will store them.
+
+
+    IS USEFUL OR REQUIRED TO KEEP THE ORDER IN OPERATIONS?
+
+    It depends on the exisence of any sequence of operations that would cause
+    a non-consistent index.
+
+    Sample secuences:
+
+    SEQ 1, 2 threads (A,B):
+        U1 Create 123 (A)
+        U2 Update 123 (A)
+        
+        Execution:
+        - A: reserves the updates U1,U2 (S1), generates the docs(S2), and thread
+            is rescheduled.
+        - U3 Delete 123 is added to the queue.
+        - B: reserves the update U3 (S1), generates the docs (S2) sends
+            operation to solr (S3) and removes the SolrUpdate instance processed (S4).
+        - A: gets runnig, sends the operations to solr (S3) and removes the
+            instances processed (S4).
+
+        Result:
+            The instance 123 has been indexed after being removed so it remains
+            in the solr index.
+
+    
+        This sequence means that is possible to have a non-consistent index when
+        running 2 threads concurrently. And means that the process "as is" should
+        not be runned concurrently.
+
+        A way to avoid that case is to allow only a process at once. This control
+        can be done by the system itself, executing the daemon in one server
+        alone.
+
+
+        THE RISKY STEP
+
+        Which is the risky step? Where should be a lock? As operations on the
+        same instance have to be executed in order, we have to lock other
+        threads between s1 and s2, and allow to progress the one that has older
+        opreations.
+
+        Steps:
+        S1 - Reserve operations pending for the thread
+        S2 - Convert operations to doc
+        * HERE WE COULD KEEP THE ORDER ON SENDING OPS TO SOLR
+        S3 - Send operations to solr
+        S4 - Delete SolrUpdate instances processed
+
+        But it doesn't ends here! We missed a fact that gives us a way out of this
+        type of lock.
+
+        Fact: the order in the updates has to be kept only for the same instance.
+
+        Example:
+            U1 Create Book:1
+            U2 Create Book:2
+            U3 Update Book:2
+            U4 Delete Book:1
+
+        This can be runned concurrently as:
+            Thread 1            Thread 2
+            U1 Create Book:1    U2 Create Book:2
+            U4 Delete Book:1    U3 Update Book:2
+
+        Both threads can run in any order as ther will not be no consistency
+        broken.
+
+        This can be achieved on the query that selects the updates for every thread.
+
+        Conclusion:
+            The "keeping order" rule can be relaxed to the instance level.
+
+            The step 1 described as "Reserve operations pending for thread" has
+            to be achieved this way:
+
+                Select all solr_updates that refer to instances that does not
+                have a reserved operation on it.
+
+            In SQL:
+                SELECT *
+                    FROM solr_updates
+                    WHERE lock = 0
+                    AND instance_key NOT IN
+                ( select instance_key FROM
+                    solr_updates where lock <> 0 )
+
+            The reservation query:
+                UPDATE solr_updates SET lock = #{thread_id} WHERE lock = 0
+                AND instance_key NOT IN
+                ( select instance_key FROM
+                    solr_updates where lock <> 0 )
+
+                ** Assuming that the query is done atomically in the DBMS.
+
+            Cons:
+                 * Database must support subqueries
+                 * The lock can make updates a bit (only a tiny bit) slower as
+                the query locks the table while reserving instances.
+
+            Apparently, there is no direct SQL solution for databases that does
+            not support subqueries.
+
+            ALTERNATIVE ActiveRecord::Locking DISCARDED:
+            The Rails implementation saves an id on the database that locks the
+            updates to that instance. But any update to a locked instance would
+            raise an exception. That is not acceptable as all the
+            models that had acts_as_solr could return an exception while saving.
+            All controllers and actions should have it into account.
+
+Resulting implementation:
+    The models that is required to be updated in background will be initalized
+    this way:
+
+    class Book < ActiveRecord::Base
+        acts_as_solr :daemonized_updates => true
+    end
+
+    This will add some callbacks to register the actions.
+    The plugin will need a model to register the changes:
+
+    create_table :solr_updates do |t|
+        t.column "action", :string, :null => false,
+        t.column "instance_id", :string, :null => false,
+        t.column "thread_id", :integer, :null => false, :default => 0
+    end
+
+    In background we need to have at least 1 thread processing the updates.
+
