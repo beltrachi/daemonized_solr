@@ -1,2 +1,2 @@
-# hook 
+# hook
 require 'daemonized_solr'
