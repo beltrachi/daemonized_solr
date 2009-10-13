@@ -11,16 +11,16 @@ def load_schema
 
   db_adapter = ENV['DB']
 
-  # no db passed, try one of these fine config-free DBs before bombing.
+  # no db passed, try postgresql or mysql
   db_adapter ||=
     begin
       require 'rubygems'
-      require 'sqlite'
-      'sqlite'
+      require 'postgres'
+      'postgresql'
     rescue MissingSourceFile
       begin
-        require 'sqlite3'
-        'sqlite3'
+        require 'mysql'
+        'mysql'
       rescue MissingSourceFile
       end
     end
@@ -28,7 +28,6 @@ def load_schema
   if db_adapter.nil?
     raise "No DB Adapter selected. Pass the DB= option to pick one, or install Sqlite or Sqlite3"
   end
-  pp config[db_adapter]
   ActiveRecord::Base.establish_connection(config[db_adapter])
   load(File.dirname(__FILE__) + "/schema.rb")
   require File.dirname(__FILE__) + '/../init.rb'

@@ -1,10 +1,11 @@
-sqlite:
-  :adapter: sqlite
-  :dbfile: vendor/plugins/daemonized_solr_updates/test/daemonized_solr_updates_plugin.sqlite.db
-
-sqlite3:
-  :adapter: sqlite3
-  :dbfile: vendor/plugins/daemonized_solr_updates/test/daemonized_solr_updates_plugin.sqlite3.db
+# Implementation of this plugin does not cover sqlite databases 
+#sqlite:
+#  :adapter: sqlite
+#  :dbfile: vendor/plugins/daemonized_solr_updates/test/daemonized_solr_updates_plugin.sqlite.db
+#
+#sqlite3:
+#  :adapter: sqlite3
+#  :dbfile: vendor/plugins/daemonized_solr_updates/test/daemonized_solr_updates_plugin.sqlite3.db
 
 postgresql:
   :adapter: postgresql
