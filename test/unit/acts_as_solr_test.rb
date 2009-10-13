@@ -20,14 +20,8 @@ class ActsAsSolrTest < Test::Unit::TestCase
 
   def test_create_posts_to_solr
     ActsAsSolr::Post.expects(:execute).times(2) #doc post and commit
-    SolrUpdate.expects(:new).with(
-      {:action => "update", :instance_id => "Book:1"}).never
+    SolrUpdate.expects(:save).never
     Book.create(:title => "i'm the title!")
-    assert_equal( 0, SolrUpdate.count )
   end
-
-  
-
-
 
 end
