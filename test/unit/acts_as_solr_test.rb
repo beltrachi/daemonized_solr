@@ -1,7 +1,9 @@
 require File.dirname(__FILE__) + "/../test_helper.rb"
 require "mocha"
 
-#Testing that acts_as_solr still works
+#
+#   Testing that acts_as_solr without daemonized still works
+#
 class ActsAsSolrTest < Test::Unit::TestCase
   load_schema
 
@@ -12,6 +14,11 @@ class ActsAsSolrTest < Test::Unit::TestCase
   class SolrUpdate < ActiveRecord::Base
   end
 
+  def setup
+    super
+    load_schema
+  end
+
   def test_schema_has_loaded_correctly
     #ActsAsSolr::ActsMethods.expects(:acts_as_solr).once
     assert_not_nil( Book.send(:configuration))
@@ -20,8 +27,15 @@ class ActsAsSolrTest < Test::Unit::TestCase
 
   def test_create_posts_to_solr
     ActsAsSolr::Post.expects(:execute).times(2) #doc post and commit
-    SolrUpdate.expects(:save).never
+    SolrUpdate.expects(:create).never
+    Book.create!(:title => "i'm the title!")
+  end
+
+  def test_search_on_solr
+    ActsAsSolr::Post.expects(:execute).times(3)
+    SolrUpdate.expects(:create).never
     Book.create(:title => "i'm the title!")
+    Book.find_by_solr("title")
   end
 
 end
