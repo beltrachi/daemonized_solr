@@ -7,7 +7,3 @@ module DaemonizedSolr; end
   ActiveSupport::Dependencies.load_paths << path
   ActiveSupport::Dependencies.load_once_paths.delete(path)
 end
-
-require "acts_as_solr"
-require "daemonized_solr/acts_methods"
-ActiveRecord::Base.extend DaemonizedSolr::ActsMethods

@@ -11,7 +11,7 @@ class ActsAsSolrTest < Test::Unit::TestCase
     acts_as_solr
   end
 
-  class SolrUpdate < ActiveRecord::Base
+  class Author < ActiveRecord::Base
   end
 
   def setup
@@ -36,6 +36,12 @@ class ActsAsSolrTest < Test::Unit::TestCase
     SolrUpdate.expects(:create).never
     Book.create(:title => "i'm the title!")
     Book.find_by_solr("title")
+  end
+
+  def test_author_works
+    ActsAsSolr::Post.expects(:execute).never
+    SolrUpdate.expects(:create).never
+    Author.create(:name => "andrew")
   end
 
 end

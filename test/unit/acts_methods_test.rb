@@ -3,8 +3,17 @@ require "mocha"
 
 class ActsMethodsTest < Test::Unit::TestCase
 
+  # Init 3 AR models to make sure that the updates do not interfiere among
+  # them
   class Book < ActiveRecord::Base
-    acts_as_solr :daemonized_updates => true
+    acts_as_solr :offline => proc {|record| SolrUpdate.register_on( record )}
+  end
+
+  class Author < ActiveRecord::Base
+    acts_as_solr
+  end
+
+  class Publisher < ActiveRecord::Base
   end
 
   def setup
@@ -21,11 +30,11 @@ class ActsMethodsTest < Test::Unit::TestCase
   def test_daemonized_updates_action
     ActsAsSolr::Post.expects(:execute).never
     SolrUpdate.expects(:create).with(
-      {:action => "update", :instance_id => "ActsMethodsTest::Book:1"}).once
+      {:action => "update", :instance_id => "ActsMethodsTest::Book@1"}).once
     SolrUpdate.expects(:create).with(
-      {:action => "update", :instance_id => "ActsMethodsTest::Book:1"}).once
+      {:action => "update", :instance_id => "ActsMethodsTest::Book@1"}).once
     SolrUpdate.expects(:create).with(
-      {:action => "delete", :instance_id => "ActsMethodsTest::Book:1"}).once
+      {:action => "delete", :instance_id => "ActsMethodsTest::Book@1"}).once
 
     b = Book.create!(:title => "im the title!")
     b.title = "2nd title"
@@ -44,4 +53,18 @@ class ActsMethodsTest < Test::Unit::TestCase
     #The search generates a post.execute but returns nil as there is no book indexed
     assert_equal( nil, Book.find_by_solr("foo"))
   end
+
+  def test_not_daemonized_still_works
+    ActsAsSolr::Post.expects(:execute).times(2)
+    SolrUpdate.expects(:create).never
+    Author.create(:name => "Jordi")
+  end
+
+  def test_not_solr_still_works
+    ActsAsSolr::Post.expects(:execute).never
+    SolrUpdate.expects(:create).never
+    Publisher.create(:name=>"amaNzon")
+    assert_equal( 1, Publisher.count )
+  end
+  
 end
