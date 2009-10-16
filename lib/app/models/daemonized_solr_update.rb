@@ -1,8 +1,8 @@
-class SolrUpdate < ActiveRecord::Base
+class DaemonizedSolrUpdate < ActiveRecord::Base
   # Method to register an action on an instance that is indexed
   def self.register_on( instance )
     action = ( instance.frozen? ? "delete" : "update" )
-    SolrUpdate.create(
+    create(
       :action => action,
       :instance_id => instance_id_from(instance) )
     true

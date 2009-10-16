@@ -6,7 +6,9 @@ class ActsMethodsTest < Test::Unit::TestCase
   # Init 3 AR models to make sure that the updates do not interfiere among
   # them
   class Book < ActiveRecord::Base
-    acts_as_solr :offline => proc {|record| SolrUpdate.register_on( record )}
+    acts_as_solr :offline => proc { |record|
+      DaemonizedSolrUpdate.register_on( record )
+    }
   end
 
   class Author < ActiveRecord::Base
@@ -29,11 +31,11 @@ class ActsMethodsTest < Test::Unit::TestCase
 
   def test_daemonized_updates_action
     ActsAsSolr::Post.expects(:execute).never
-    SolrUpdate.expects(:create).with(
+    DaemonizedSolrUpdate.expects(:create).with(
       {:action => "update", :instance_id => "ActsMethodsTest::Book@1"}).once
-    SolrUpdate.expects(:create).with(
+    DaemonizedSolrUpdate.expects(:create).with(
       {:action => "update", :instance_id => "ActsMethodsTest::Book@1"}).once
-    SolrUpdate.expects(:create).with(
+    DaemonizedSolrUpdate.expects(:create).with(
       {:action => "delete", :instance_id => "ActsMethodsTest::Book@1"}).once
 
     b = Book.create!(:title => "im the title!")
@@ -45,8 +47,8 @@ class ActsMethodsTest < Test::Unit::TestCase
   def test_daemonized_updates_select
     #Stupid test?
     ActsAsSolr::Post.expects(:execute).once
-    SolrUpdate.expects(:create).once
-    #A select does not add any SolrUpdate row
+    DaemonizedSolrUpdate.expects(:create).once
+    #A select does not add any DaemonizedSolrUpdate row
     Book.find(:all)
     b = Book.create!(:title => "foo")
     Book.find(:first)
@@ -56,13 +58,13 @@ class ActsMethodsTest < Test::Unit::TestCase
 
   def test_not_daemonized_still_works
     ActsAsSolr::Post.expects(:execute).times(2)
-    SolrUpdate.expects(:create).never
+    DaemonizedSolrUpdate.expects(:create).never
     Author.create(:name => "Jordi")
   end
 
   def test_not_solr_still_works
     ActsAsSolr::Post.expects(:execute).never
-    SolrUpdate.expects(:create).never
+    DaemonizedSolrUpdate.expects(:create).never
     Publisher.create(:name=>"amaNzon")
     assert_equal( 1, Publisher.count )
   end

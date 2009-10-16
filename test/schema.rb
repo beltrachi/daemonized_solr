@@ -10,7 +10,7 @@ ActiveRecord::Schema.define(:version => 0) do
   create_table :publishers, :force => true do |t|
     t.string :name
   end
-  create_table :solr_updates, :force => true do |t|
+  create_table :daemonized_solr_solr_updates, :force => true do |t|
     t.string :action, :null => false
     t.string :instance_id, :null => false
     t.integer :tread_id
