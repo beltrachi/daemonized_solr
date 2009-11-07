@@ -162,7 +162,7 @@ Content:
             Apparently, there is no direct SQL solution for databases that does
             not support subqueries.
 
-            ALTERNATIVE ActiveRecord::Locking DISCARDED:
+            ALTERNATIVE ActiveRecord::Locking not acceptable:
             The Rails implementation saves an id on the database that locks the
             updates to that instance. But any update to a locked instance would
             raise an exception. That is not acceptable as all the

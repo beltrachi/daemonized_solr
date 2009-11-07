@@ -32,11 +32,11 @@ class ActsMethodsTest < Test::Unit::TestCase
   def test_daemonized_updates_action
     ActsAsSolr::Post.expects(:execute).never
     DaemonizedSolrUpdate.expects(:create).with(
-      {:action => "update", :instance_id => "ActsMethodsTest::Book@1"}).once
+      {:action => "update", :instance_id => "ActsMethodsTest::Book:1"}).once
     DaemonizedSolrUpdate.expects(:create).with(
-      {:action => "update", :instance_id => "ActsMethodsTest::Book@1"}).once
+      {:action => "update", :instance_id => "ActsMethodsTest::Book:1"}).once
     DaemonizedSolrUpdate.expects(:create).with(
-      {:action => "delete", :instance_id => "ActsMethodsTest::Book@1"}).once
+      {:action => "delete", :instance_id => "ActsMethodsTest::Book:1"}).once
 
     b = Book.create!(:title => "im the title!")
     b.title = "2nd title"
