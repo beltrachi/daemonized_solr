@@ -41,6 +41,7 @@ module DaemonizedSolr
 
     # Process updates reserved by keeping the order in the same instance
     def process_reserved_updates
+      return if reserved_updates.size == 0
       update_hash = {}
       delete_hash = {}
       # Clean the repeated items or deleted ones.
@@ -82,14 +83,12 @@ module DaemonizedSolr
 
     def execute_updates update_hash
       docs2update = update_hash.values.map(&:to_solr_doc)
-      require "ruby-debug"; debugger;
-      2+2
       solr_add docs2update
     end
 
     def execute_deletes delete_hash
       docs2delete = delete_hash.values.map(&:solr_id)
-      #TODO execute delete
+      solr_delete docs2delete
     end
 
     def execute_commit

@@ -62,7 +62,7 @@ class ProcessorTest < Test::Unit::TestCase
     end
     DaemonizedSolrUpdate.expects(:find).with(
       :all, :conditions => {:lock_id => 1},:order => "instance_id ASC, id ASC").returns( rus )
-    DaemonizedSolrUpdate.any_instance.stubs(:to_solr_doc).returns("<doc><!-- test --></doc>")
+    DaemonizedSolrUpdate.any_instance.stubs(:to_solr_doc).returns(Solr::Document.new)
     ActsAsSolr::Post.expects(:execute).times(2)
 
     p.process_pending_updates
