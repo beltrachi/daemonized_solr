@@ -82,7 +82,13 @@ module DaemonizedSolr
     end
 
     def execute_updates update_hash
-      docs2update = update_hash.values.map(&:to_solr_doc)
+      docs2update = update_hash.values.map do |u|
+        begin
+          u.to_solr_doc
+        rescue ActiveRecord::RecordNotFound
+          logger.warning "Record not found to update doc for #{u.inspect}"
+        end
+      end.compact
       solr_add docs2update
     end
 

@@ -95,6 +95,37 @@ class DaemonizedSolrTest < Test::Unit::TestCase
     assert_equal 2, Book.count
   end
 
+  def test_disappeared_instance
+    # test what happens when an instance has to be updated but it does not
+    # exist in the database
+    #
+    # The ActiveRecord::RecordNotFound will be captured and logged a warning
+    # as the non existance of an instance can happen in some event sequences and
+    # is not recoverable.
+    #
+    # Case:
+    #   Scenario : DSUpdates table: [ Update Book:1 ]
+    #   Sequence:
+    #     Processor reserves the update and is rescheduled
+    #     The instance 1 is destroyed
+    #     The processor generates docs for reserved updates and raises the
+    #       exception
+    #     The exception is rescued and logged as a warning
+    #
+    # The DaemonizedSolrUpdate will be deleted as it has nonsense to keep it
+
+    romeo = Book.create(:title => "romeo", :description => "desc")
+    assert_equal 1, DaemonizedSolrUpdate.count
+    Book.delete_all( :id => romeo.id )
+    
+    p = DaemonizedSolr::Processor.new(:lock => 1)
+    p.send(:logger).expects(:warning).once
+    p.process_pending_updates
+
+    assert_equal 0, DaemonizedSolrUpdate.count
+    assert_equal 0, Book.find_by_solr("romeo").docs.size
+  end
+
   #TODO test concurrent processors! how?
 
 end
