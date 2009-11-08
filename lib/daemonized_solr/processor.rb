@@ -36,7 +36,8 @@ module DaemonizedSolr
     # gives the reserved updates sorted by instance_id ASC
     def reserved_updates
       @reserved_updates ||= DaemonizedSolrUpdate.find(:all, 
-        :conditions => {:lock_id => self.lock}, :order => "instance_id ASC, id ASC")
+        :conditions => {:lock_id => self.lock},
+        :order => "instance_id ASC, id ASC")
     end
 
     # Process updates reserved by keeping the order in the same instance

@@ -3,7 +3,11 @@ class DaemonizedSolrUpdate < ActiveRecord::Base
   K_SEP = ":"
 
   def self.register_on( instance )
-    action = ( instance.frozen? ? "delete" : "update" )
+    action = if instance.frozen? || !instance.send(:evaluate_condition, :if, instance)
+      "delete"
+    else
+      "update"
+    end
     create(
       :action => action,
       :instance_id => instance_id_from(instance) )

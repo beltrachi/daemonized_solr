@@ -126,6 +126,39 @@ class DaemonizedSolrTest < Test::Unit::TestCase
     assert_equal 0, Book.find_by_solr("romeo").docs.size
   end
 
+  def test_compat_with_actsassolr_if_option
+    Book.send(:configuration)[:if] = proc {|i| i.title != "noindex" }
+    romeo = Book.create(:title => "romeo", :description => "desc")
+    noindex = Book.create(:title => "noindex", :description => "desc")
+    assert_equal 2, DaemonizedSolrUpdate.count
+    #The noindex is registered as a delete of the instance to make sure it
+    # was not indexed before
+    dsu_del = DaemonizedSolrUpdate.find(:all,
+      :conditions => {:action => "delete" })
+    assert_equal 1, dsu_del.size
+    assert_equal noindex, dsu_del.first.send(:instance)
+
+    p = DaemonizedSolr::Processor.new(:lock => 1)
+    p.process_pending_updates
+    assert_equal 0, Book.find_by_solr("noindex").docs.size
+
+    noindex.destroy
+    assert_equal 1, DaemonizedSolrUpdate.count
+
+    #weird case when the condition is true but DB has not been updated
+    noindex2 = Book.create(:title => "noindex", :description => "desc")
+    assert_equal 2, DaemonizedSolrUpdate.count
+    noindex2.title = "indexnow"
+    noindex2.destroy
+    assert_equal 3, DaemonizedSolrUpdate.count
+
+    dsu_del = DaemonizedSolrUpdate.find(:all,
+      :conditions => {:action => "delete" })
+    assert_equal 3, dsu_del.size
+    assert_equal [noindex.solr_id,noindex2.solr_id,noindex2.solr_id],
+      dsu_del.map(&:instance_id)
+  end
+
   #TODO test concurrent processors! how?
 
 end
