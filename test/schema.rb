@@ -15,4 +15,10 @@ ActiveRecord::Schema.define(:version => 0) do
     t.string :instance_id, :null => false
     t.integer :lock_id, :default => 0, :null => false
   end
+  create_table :daemonized_solr_processors, :force => true do |t|
+    t.datetime :started_at
+    t.datetime :finished_at
+   
+    t.timestamps
+  end
 end

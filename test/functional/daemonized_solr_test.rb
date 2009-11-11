@@ -29,7 +29,7 @@ class DaemonizedSolrTest < Test::Unit::TestCase
     assert_equal 1, Book.count
     assert_equal 1, DaemonizedSolrUpdate.count
     assert_equal 0,Book.find_by_solr("barcelona").total
-    p = DaemonizedSolr::Processor.new(:lock=> 1)
+    p = DaemonizedSolr::Processor.new
     p.process_pending_updates
     assert_equal 0, DaemonizedSolrUpdate.count
     assert_equal b, Book.find_by_solr("barcelona").docs.first
@@ -41,7 +41,7 @@ class DaemonizedSolrTest < Test::Unit::TestCase
     assert_equal 1, DaemonizedSolrUpdate.count
     assert_equal nil, Book.find_by_solr("romeo").docs.first
     # Add book to solr
-    DaemonizedSolr::Processor.new(:lock => 1).process_pending_updates
+    DaemonizedSolr::Processor.new.process_pending_updates
     assert_equal romeo, Book.find_by_solr("romeo").docs.first
     assert_equal 0, DaemonizedSolrUpdate.count
     #New 2nd book
@@ -62,7 +62,7 @@ class DaemonizedSolrTest < Test::Unit::TestCase
     solr_books = Book.find_by_solr("quijote")
     assert_equal 0, solr_books.docs.size
     #Updates solr adding 2nd book and removing first
-    DaemonizedSolr::Processor.new(:lock => 2).process_pending_updates
+    DaemonizedSolr::Processor.new.process_pending_updates
     assert_equal 0, DaemonizedSolrUpdate.count
     assert_equal 1, Book.count
     solr_books = Book.find_by_solr("romeo OR quijote")
@@ -83,7 +83,7 @@ class DaemonizedSolrTest < Test::Unit::TestCase
     quijote.description = "epic book"
     quijote.save!
 
-    p = DaemonizedSolr::Processor.new(:lock => 1)
+    p = DaemonizedSolr::Processor.new
     p.process_pending_updates
 
     assert_equal 0, DaemonizedSolrUpdate.count
@@ -118,7 +118,7 @@ class DaemonizedSolrTest < Test::Unit::TestCase
     assert_equal 1, DaemonizedSolrUpdate.count
     Book.delete_all( :id => romeo.id )
     
-    p = DaemonizedSolr::Processor.new(:lock => 1)
+    p = DaemonizedSolr::Processor.new
     p.send(:logger).expects(:warning).once
     p.process_pending_updates
 
@@ -138,7 +138,7 @@ class DaemonizedSolrTest < Test::Unit::TestCase
     assert_equal 1, dsu_del.size
     assert_equal noindex, dsu_del.first.send(:instance)
 
-    p = DaemonizedSolr::Processor.new(:lock => 1)
+    p = DaemonizedSolr::Processor.new
     p.process_pending_updates
     assert_equal 0, Book.find_by_solr("noindex").docs.size
 

@@ -24,29 +24,21 @@ class ProcessorTest < Test::Unit::TestCase
   end
 
   def test_create
-    ["","a", nil].each do |key|
-      ex = nil
-      begin
-        DaemonizedSolr::Processor.new( :lock => key )
-      rescue
-        ex = $!
-      end
-      assert_equal( RuntimeError, ex.class)
-    end
-    ["1", 11, 11.223].each do |key|
-      DaemonizedSolr::Processor.new( :lock => key)
-    end
+    p = DaemonizedSolr::Processor.new
+    assert 1, p.lock
+    p = DaemonizedSolr::Processor.new
+    assert 2, p.lock
   end
   
   def test_process_pending_updates
-    p = DaemonizedSolr::Processor.new( :lock => 1 )
+    p = DaemonizedSolr::Processor.new
     p.expects(:reserve_updates!).once
     p.expects(:reserved_updates).times(2).returns([])
     p.process_pending_updates
   end
 
   def test_do_reservations
-    p = DaemonizedSolr::Processor.new( :lock => 1 )
+    p = DaemonizedSolr::Processor.new
     reserved_updates = [{:instance_id => "Book:1"},{:instance_id => "Book:2"}]
     DaemonizedSolrUpdate.expects(:update_all).with(
       {:lock_id => 1},

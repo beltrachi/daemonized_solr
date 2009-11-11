@@ -1,9 +1,11 @@
 module DaemonizedSolr
   # Code to process pending updates
   #
-  # Responsabilities:
-  class Processor
-
+  # This class could be a non ActiveRecord but to make sure no lock_id is
+  # repeated we use the table PK id field.
+  class Processor < ActiveRecord::Base
+    set_table_name "daemonized_solr_processors"
+    
     include ActsAsSolr::CommonMethods
     include ActsAsSolr::ParserMethods
     include ActsAsSolr::SliceMethods
@@ -11,16 +13,21 @@ module DaemonizedSolr
     attr_reader :lock
     attr_accessor :logger
 
-    def initialize( params )
-      raise "Param :lock required" if params[:lock].blank?
-      @lock = params[ :lock ].to_i
-      raise "Param :lock needs to be int > 0" if @lock < 1
+    #when a new instance is created, its saved on DB too
+    def initialize
+      super
+      save!
+      @lock = self.id
     end
 
     def process_pending_updates
+      self.started_at = Time.now
+      save!
       reserve_updates!
       process_reserved_updates
       destroy_reserved_updates!
+      self.finished_at = Time.now
+      save!
     end
 
     protected
