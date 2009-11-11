@@ -7,7 +7,7 @@ class ActsMethodsTest < Test::Unit::TestCase
   # them
   class Book < ActiveRecord::Base
     acts_as_solr :offline => proc { |record|
-      DaemonizedSolrUpdate.register_on( record )
+      DaemonizedSolr::Update.register_on( record )
     }
   end
 
@@ -31,11 +31,11 @@ class ActsMethodsTest < Test::Unit::TestCase
 
   def test_daemonized_updates_action
     ActsAsSolr::Post.expects(:execute).never
-    DaemonizedSolrUpdate.expects(:create).with(
+    DaemonizedSolr::Update.expects(:create).with(
       {:action => "update", :instance_id => "ActsMethodsTest::Book:1"}).once
-    DaemonizedSolrUpdate.expects(:create).with(
+    DaemonizedSolr::Update.expects(:create).with(
       {:action => "update", :instance_id => "ActsMethodsTest::Book:1"}).once
-    DaemonizedSolrUpdate.expects(:create).with(
+    DaemonizedSolr::Update.expects(:create).with(
       {:action => "delete", :instance_id => "ActsMethodsTest::Book:1"}).once
 
     b = Book.create!(:title => "im the title!")
@@ -47,8 +47,8 @@ class ActsMethodsTest < Test::Unit::TestCase
   def test_daemonized_updates_select
     #Stupid test?
     ActsAsSolr::Post.expects(:execute).once
-    DaemonizedSolrUpdate.expects(:create).once
-    #A select does not add any DaemonizedSolrUpdate row
+    DaemonizedSolr::Update.expects(:create).once
+    #A select does not add any DaemonizedSolr::Update row
     Book.find(:all)
     b = Book.create!(:title => "foo")
     Book.find(:first)
@@ -58,13 +58,13 @@ class ActsMethodsTest < Test::Unit::TestCase
 
   def test_not_daemonized_still_works
     ActsAsSolr::Post.expects(:execute).times(2)
-    DaemonizedSolrUpdate.expects(:create).never
+    DaemonizedSolr::Update.expects(:create).never
     Author.create(:name => "Jordi")
   end
 
   def test_not_solr_still_works
     ActsAsSolr::Post.expects(:execute).never
-    DaemonizedSolrUpdate.expects(:create).never
+    DaemonizedSolr::Update.expects(:create).never
     Publisher.create(:name=>"amaNzon")
     assert_equal( 1, Publisher.count )
   end

@@ -27,20 +27,20 @@ class ActsAsSolrTest < Test::Unit::TestCase
 
   def test_create_posts_to_solr
     ActsAsSolr::Post.expects(:execute).times(2) #doc post and commit
-    DaemonizedSolrUpdate.expects(:create).never
+    DaemonizedSolr::Update.expects(:create).never
     Book.create!(:title => "i'm the title!")
   end
 
   def test_search_on_solr
     ActsAsSolr::Post.expects(:execute).times(3)
-    DaemonizedSolrUpdate.expects(:create).never
+    DaemonizedSolr::Update.expects(:create).never
     Book.create(:title => "i'm the title!")
     Book.find_by_solr("title")
   end
 
   def test_author_works
     ActsAsSolr::Post.expects(:execute).never
-    DaemonizedSolrUpdate.expects(:create).never
+    DaemonizedSolr::Update.expects(:create).never
     Author.create(:name => "andrew")
   end
 

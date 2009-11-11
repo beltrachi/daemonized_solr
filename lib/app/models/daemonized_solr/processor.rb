@@ -34,7 +34,7 @@ module DaemonizedSolr
 
     def reserve_updates!
       @reserved_updates = nil
-      DaemonizedSolrUpdate.update_all( {:lock_id => self.lock},
+      DaemonizedSolr::Update.update_all( {:lock_id => self.lock},
       " daemonized_solr_updates.lock_id = 0 AND "+
         "daemonized_solr_updates.instance_id NOT IN ( select instance_id FROM "+
         "daemonized_solr_updates where lock_id <> 0 )" )
@@ -42,7 +42,7 @@ module DaemonizedSolr
 
     # gives the reserved updates sorted by instance_id ASC
     def reserved_updates
-      @reserved_updates ||= DaemonizedSolrUpdate.find(:all, 
+      @reserved_updates ||= DaemonizedSolr::Update.find(:all,
         :conditions => {:lock_id => self.lock},
         :order => "instance_id ASC, id ASC")
     end
@@ -75,7 +75,7 @@ module DaemonizedSolr
       #TODO take into account the same conditions as
       # ActsAsSolr::InstanceMethods#solr_save
       # 'cause by now we are indexing all instances. Maybe that filter shoud be
-      # done in DaemonizedSolrUpdate#register_on
+      # done in DaemonizedSolr::Update#register_on
       if update_hash.size > 0
         execute_updates update_hash
       end

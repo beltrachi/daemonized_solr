@@ -7,7 +7,7 @@ class ProcessorTest < Test::Unit::TestCase
   # them
   class Book < ActiveRecord::Base
     acts_as_solr :offline => proc { |record|
-      DaemonizedSolrUpdate.register_on( record )
+      DaemonizedSolr::Update.register_on( record )
     }
   end
 
@@ -40,7 +40,7 @@ class ProcessorTest < Test::Unit::TestCase
   def test_do_reservations
     p = DaemonizedSolr::Processor.new
     reserved_updates = [{:instance_id => "Book:1"},{:instance_id => "Book:2"}]
-    DaemonizedSolrUpdate.expects(:update_all).with(
+    DaemonizedSolr::Update.expects(:update_all).with(
       {:lock_id => 1},
         " daemonized_solr_updates.lock_id = 0 AND "+
           "daemonized_solr_updates.instance_id NOT IN ( select instance_id FROM "+
@@ -48,13 +48,13 @@ class ProcessorTest < Test::Unit::TestCase
     ).once
     #Prepare response
     rus = reserved_updates.map do |ru|
-      nru = DaemonizedSolrUpdate.new(ru.merge(:lock_id => 1,:action => "update"))
+      nru = DaemonizedSolr::Update.new(ru.merge(:lock_id => 1,:action => "update"))
       nru.expects(:destroy).once #That update will be destroyed!
       nru
     end
-    DaemonizedSolrUpdate.expects(:find).with(
+    DaemonizedSolr::Update.expects(:find).with(
       :all, :conditions => {:lock_id => 1},:order => "instance_id ASC, id ASC").returns( rus )
-    DaemonizedSolrUpdate.any_instance.stubs(:to_solr_doc).returns(Solr::Document.new)
+    DaemonizedSolr::Update.any_instance.stubs(:to_solr_doc).returns(Solr::Document.new)
     ActsAsSolr::Post.expects(:execute).times(2)
 
     p.process_pending_updates
