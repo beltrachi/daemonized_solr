@@ -1,0 +1,8 @@
+Description:
+    Generates the database migration required for the daemonized solr plugin.
+
+Example:
+    ./script/generate daemonized_solr_migration 
+
+    This will create:
+        db/migrate/{...}_daemonized_solr_migration.rb

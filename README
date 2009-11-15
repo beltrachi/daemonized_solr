@@ -1,13 +1,32 @@
 DaemonizedSolr
 ==============
 
-Introduction goes here.
+Installation
+============
 
+Daemonized Solr is available as a plugin. For the
+traditional plugin you can install like so (Rails 2.1 or later):
+
+  script/plugin install git://github.com/beltrachi/daemonized_solr.git
+
+For earlier versions:
+
+  git clone git://github.com/beltrachi/daemonized_solr.git vendor/plugins/daemonized_solr
+
+2. script/generate daemonized_solr_migration
+3. rake db:migrate
 
 Example
 =======
 
-Example goes here.
+To apply the daemonized updates to the solr models you want, you have to modify
+the call to the acts_as_solr this way:
 
+class Book < ActiveRecord::Base
+  acts_as_solr :offline => proc { |r| DaemonizedSolr::Update.register_on( r ) }
+end
 
-Copyright (c) 2009 [name of plugin creator], released under the MIT license
+This way, all updates to the index will be stored in the database and processed
+later.
+
+Copyright (c) 2009 Jordi Beltran Rafols, released under the MIT license

@@ -1,7 +1,7 @@
 Title: Daemonized solr updates plugin
 Summary:
 
-    Description of the features, requirements and changes needed to daemonize
+    Description and reasoning of the features, requirements and changes needed to daemonize
     the process of updating the index (solr updates). Describes how it will be
     done and why.
 
@@ -14,15 +14,15 @@ Content:
         - Model instance insert/update/delete does not have to connect to Solr.
         This causes some side-effects:
             - Lower response times (client-side point of view) (Good).
-            - Searches will reflect changes later. (Bad, but it's worth)
-        - Keep order in index operations. (discussed after)
+            - Searches will reflect changes later. (Bad, but it's worth it)
+        - Keep order in index operations. (discussed after in this doc)
         - Good log and messages to allow debugging.
         - More than one updating process can run concurrently. In case a update
         task is runned and another starts, it will work as expected.
 
     So,
 
-    to allow the acts_as_plugin to be more efficient and less payload in each
+    to allow the acts_as_solr plugin to be more efficient and less payload in each
     user request, the update to the index should not be done in the thread that
     processes the user action (request).
 
@@ -57,7 +57,7 @@ Content:
     the model, the instance, and the action to be done. Other fields will appear
     on the way.
 
-    The SolrUpdate model will store them.
+    The DaemonizedSolr::Update model will store them.
 
 
     IS USEFUL OR REQUIRED TO KEEP THE ORDER IN OPERATIONS?
@@ -66,6 +66,9 @@ Content:
     a non-consistent index.
 
     Sample secuences:
+
+        Note: "S1", "S2", and so on, means the step number in the process.
+        Detailed after.
 
     SEQ 1, 2 threads (A,B):
         U1 Create 123 (A)
@@ -86,8 +89,8 @@ Content:
 
     
         This sequence means that is possible to have a non-consistent index when
-        running 2 threads concurrently. And means that the process "as is" should
-        not be runned concurrently.
+        running 2 threads concurrently. And means that the process "as is" by now
+        should not be runned concurrently.
 
         A way to avoid that case is to allow only a process at once. This control
         can be done by the system itself, executing the daemon in one server
@@ -173,18 +176,20 @@ Resulting implementation:
     The models that is required to be updated in background will be initalized
     this way:
 
-    class Book < ActiveRecord::Base
-        acts_as_solr :daemonized_updates => true
-    end
+      class Book < ActiveRecord::Base
+        acts_as_solr :offline => proc { |record|
+          DaemonizedSolr::Update.register_on( record )
+        }
+      end
 
     This will add some callbacks to register the actions.
     The plugin will need a model to register the changes:
 
-    create_table :solr_updates do |t|
+    create_table :daemonized_solr_updates do |t|
         t.column "action", :string, :null => false,
         t.column "instance_id", :string, :null => false,
         t.column "thread_id", :integer, :null => false, :default => 0
     end
 
-    In background we need to have at least 1 thread processing the updates.
-
+    In background we need to have at least 1 thread processing the updates or
+    a periodical task that process the pending updates.
