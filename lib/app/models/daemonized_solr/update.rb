@@ -1,9 +1,10 @@
 module DaemonizedSolr
   class Update < ActiveRecord::Base
     set_table_name "daemonized_solr_updates"
-    # Method to register an action on an instance that is indexed
+
     K_SEP = ":"
 
+    # Method to register an action on an instance that is indexed
     def self.register_on( instance )
       action = if instance.frozen? || !instance.send(:evaluate_condition, :if, instance)
         "delete"
@@ -38,7 +39,7 @@ module DaemonizedSolr
       inst = nil
       if simulated
         inst = klass.new
-        inst.id = key
+        inst.send( klass.primary_key.to_s + "=", key)
       else
         inst = klass.find(key)
       end

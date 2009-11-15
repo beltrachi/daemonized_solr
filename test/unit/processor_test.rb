@@ -33,7 +33,7 @@ class ProcessorTest < Test::Unit::TestCase
   def test_process_pending_updates
     p = DaemonizedSolr::Processor.new
     p.expects(:reserve_updates!).once
-    p.expects(:reserved_updates).times(2).returns([])
+    p.expects(:reserved_updates).times(4).returns([]) # 2 + 2 times more for info messages
     p.process_pending_updates
   end
 

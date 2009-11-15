@@ -1,7 +1,7 @@
 module DaemonizedSolr
-  # Code to process pending updates
+  # Class to process pending updates
   #
-  # This class could be a non ActiveRecord but to make sure no lock_id is
+  # This class could be a non ActiveRecord but to make easy that no lock_id is
   # repeated we use the table PK id field.
   class Processor < ActiveRecord::Base
     set_table_name "daemonized_solr_processors"
@@ -18,22 +18,41 @@ module DaemonizedSolr
       super
       save!
       @lock = self.id
+      @error = false #flag to not allow to call processor again after a failure.
     end
 
+    # Process pending updates taking into account all the restrictions on the
+    # reservation to allow concurrent processors.
     def process_pending_updates
-      self.started_at = Time.now
-      save!
-      reserve_updates!
-      process_reserved_updates
-      destroy_reserved_updates!
-      self.finished_at = Time.now
-      save!
+      raise "Processor has failed. Don't reuse it and check what has happened!" if @error
+      begin
+        self.started_at = Time.now
+        save!
+        reserve_updates!
+        process_reserved_updates
+        destroy_reserved_updates!
+        self.finished_at = Time.now
+        save!
+      rescue
+        @error = $!
+        logger.error("Processor is in error state. It cannot be used anymore " +
+            "and has to be checked")
+        raise $!
+      end
+    end
+
+    # public accessor for updates being locked in this processor
+    def updates
+      @reserved_updates.dup
     end
 
     protected
 
     def reserve_updates!
-      @reserved_updates = nil
+      logger.debug("Reserving updates with lock #{self.lock}")
+      @reserved_updates = nil #Forget old reserved updates
+
+      #This query is atomic to allow more than one processor run at a time.
       DaemonizedSolr::Update.update_all( {:lock_id => self.lock},
       " daemonized_solr_updates.lock_id = 0 AND "+
         "daemonized_solr_updates.instance_id NOT IN ( select instance_id FROM "+
@@ -49,6 +68,7 @@ module DaemonizedSolr
 
     # Process updates reserved by keeping the order in the same instance
     def process_reserved_updates
+      logger.info("Reserved #{reserved_updates.size} updates for the processor #{self.lock}")
       return if reserved_updates.size == 0
       update_hash = {}
       delete_hash = {}
@@ -72,10 +92,8 @@ module DaemonizedSolr
           update_hash.delete(ru.instance_id)
         end
       end
-      #TODO take into account the same conditions as
-      # ActsAsSolr::InstanceMethods#solr_save
-      # 'cause by now we are indexing all instances. Maybe that filter shoud be
-      # done in DaemonizedSolr::Update#register_on
+      logger.debug("Found #{update_hash.size} updates and " + 
+          "#{delete_hash.size} deletes to execute.")
       if update_hash.size > 0
         execute_updates update_hash
       end
@@ -86,6 +104,7 @@ module DaemonizedSolr
     end
     
     def destroy_reserved_updates!
+      logger.info("Destroying the #{reserved_updates.size} processed updates.")
       reserved_updates.each(&:destroy)
     end
 
@@ -94,7 +113,10 @@ module DaemonizedSolr
         begin
           u.to_solr_doc
         rescue ActiveRecord::RecordNotFound
-          logger.warning "Record not found to update doc for #{u.inspect}"
+          # This can happen in some concurrent cases and is not big deal.
+          # Can happen when a update has been reserved with a lock, and
+          # just after that, the instance has been deleted.
+          logger.warning "Record not found to update doc for #{u.inspect}." 
         end
       end.compact
       solr_add docs2update
