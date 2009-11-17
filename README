@@ -29,4 +29,9 @@ end
 This way, all updates to the index will be stored in the database and processed
 later.
 
+To process the updates there is a task that has to be runned:
+
+    > rake daemonized_solr:process_pending_updates
+
+
 Copyright (c) 2009 Jordi Beltran Rafols, released under the MIT license
