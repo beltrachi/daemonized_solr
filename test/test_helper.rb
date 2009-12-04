@@ -26,7 +26,7 @@ def load_schema
     end
 
   if db_adapter.nil?
-    raise "No DB Adapter selected. Pass the DB= option to pick one, or install Sqlite or Sqlite3"
+    raise "No DB Adapter selected. Pass the DB= option to pick one, or install Postgres or MySql"
   end
   ActiveRecord::Base.establish_connection(config[db_adapter])
   load(File.dirname(__FILE__) + "/schema.rb")

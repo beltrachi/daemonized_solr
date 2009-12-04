@@ -34,4 +34,31 @@ To process the updates there is a task that has to be runned:
     > rake daemonized_solr:process_pending_updates
 
 
+
+Development
+===========
+
+To develop on this plugin it has to be installed in a stub project as a plugin,
+and the acts_as_solr plugin must be installed too.
+
+    > rails stub_project
+    > cd stub_project
+    > script/plugin install git://github.com/mattmatt/acts_as_solr.git
+    > script/plugin install git://github.com/beltrachi/daemonized_solr.git
+
+On TestDrivenDevelopment, the first thing to do is to get the tests running!
+
+As this plugin is targeted to work on postgres only, the postgres plugin and 
+server must be installed.
+
+To pass the tests, a solr instance must be running, so invoke the one from the
+stub project:
+    > rake solr:start RAILS_ENV=test
+
+To run the tests go to the daemonized_solr plugin folder in the stub project:
+    > cd vendor/plugins/daemonized_solr
+    > rake
+
+If everything is fine then you can start developing!
+
 Copyright (c) 2009 Jordi Beltran Rafols, released under the MIT license

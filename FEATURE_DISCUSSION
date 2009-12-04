@@ -193,3 +193,6 @@ Resulting implementation:
 
     In background we need to have at least 1 thread processing the updates or
     a periodical task that process the pending updates.
+
+
+Copyright (c) 2009 Jordi Beltran Rafols, released under the MIT license
