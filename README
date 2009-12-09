@@ -29,10 +29,23 @@ end
 This way, all updates to the index will be stored in the database and processed
 later.
 
-To process the updates there is a task that has to be runned:
+To process the updates you have 2 options, a task runned by a cron or a daemon.
+
+Rake task:
 
     > rake daemonized_solr:process_pending_updates
 
+As daemon:
+    You need to have the gem "daemons" installed and run the generator:
+        > gem install daemons
+        > script/generate daemonized_solr_daemon
+
+    And run it as daemon with:
+        > ./lib/daemonized_solr_processor_ctl start
+
+    or 
+
+        > script/daemons start
 
 
 Development
