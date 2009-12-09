@@ -33,11 +33,14 @@ module DaemonizedSolr
         destroy_reserved_updates!
         self.finished_at = Time.now
         save!
-      rescue
+      rescue Exception
         @error = $!
+        begin
         logger.error("Processor is in error state. It cannot be used anymore " +
             "and has to be checked")
-        raise $!
+        rescue
+        end
+        raise @error
       end
     end
 
