@@ -1,0 +1,14 @@
+Description:
+    Generates the daemon files to run the processing of updates by a daemon.
+
+    This generator is based on git://github.com/dougal/daemon_generator.git
+
+Example:
+    ./script/generate daemonized_solr_daemon
+
+    This will create:
+        lib/daemons
+        script/daemons
+        lib/daemons/daemonized_solr_processor.rb
+        lib/daemons/daemonized_solr_processor_ctl
+        config/daemons.yml
