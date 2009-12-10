@@ -1,6 +1,17 @@
 DaemonizedSolr
 ==============
 
+This plugin allows to defer the solr index update when updating an instance that
+uses the act_as_solr plugin.
+
+By doing that, the query to solr gets deferred and separated from the request thread.
+
+The solr updates can be done afterwards by a cron or by a daemon.
+
+An important restriction of this plugin is that it's focused on postgres database.
+
+Deeper details about this plugin can be found in the file FEATURE_DISCUSSION file.
+
 Installation
 ============
 
