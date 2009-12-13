@@ -122,12 +122,27 @@ module DaemonizedSolr
           logger.warning "Record not found to update doc for #{u.inspect}." 
         end
       end.compact
+      logger.debug "DaemonizedSolr::Processor(#{id}): updates docs:" +
+        " #{update_hash.values.map{|d|d.instance_id}.sort.join(" ")}"
       solr_add docs2update
     end
 
     def execute_deletes delete_hash
       docs2delete = delete_hash.values.map(&:solr_id)
-      solr_delete docs2delete
+      logger.debug "DaemonizedSolr::Processor(#{id}): deletes the docs #{docs2delete.inspect}"
+      # The delete is done by query to do a unique request to delete all docs
+      query = docs2delete.map{|d|"id:\"#{d}\""}.join " OR "
+      begin
+        ActsAsSolr::Post.execute(Solr::Request::Delete.new(:query => query))
+      rescue
+        # On a big list of deletes, the delete query can fail 'cause it is
+        # bigger than solrconfig.xml#maxBooleanClauses which is 1024 by default.
+        logger.warn "DaemonizedSolr::Processor: As a delete by query failed "+
+          "with #{$!}, the delete will be done one by one"
+        docs2delete.each do |d|
+          solr_delete d
+        end
+      end
     end
 
     def execute_commit

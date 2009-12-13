@@ -159,6 +159,25 @@ class DaemonizedSolrTest < Test::Unit::TestCase
       dsu_del.map(&:instance_id)
   end
 
+  def test_multiples_deletes
+    assert_equal 0, Book.count
+    assert_equal 0, DaemonizedSolr::Update.count
+    b1 = Book.create(:title => "barcelona 1", :description => "desc")
+    b2 = Book.create(:title => "barcelona 2", :description => "desc")
+    b3 = Book.create(:title => "barcelona 3", :description => "desc")
+    assert_equal 3, Book.count
+    assert_equal 3, DaemonizedSolr::Update.count
+    assert_equal 0, Book.find_by_solr("barcelona").total
+    p = DaemonizedSolr::Processor.new
+    p.process_pending_updates
+    assert_equal 0, DaemonizedSolr::Update.count
+    assert_equal 3, Book.find_by_solr("barcelona").docs.size
+    Book.destroy_all
+    assert_equal 0, Book.count
+    p.process_pending_updates
+    assert_equal 0, Book.find_by_solr("barcelona").docs.size
+  end
+
   #TODO test concurrent processors! how?
 
 end
