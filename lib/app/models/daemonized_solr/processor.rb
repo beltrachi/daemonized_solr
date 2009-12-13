@@ -11,8 +11,7 @@ module DaemonizedSolr
     include ActsAsSolr::SliceMethods
 
     attr_reader :lock
-    attr_accessor :logger
-
+    
     #when a new instance is created, its saved on DB too
     def initialize
       super
@@ -149,8 +148,5 @@ module DaemonizedSolr
       solr_commit
     end
 
-    def logger
-      @logger ||= RAILS_DEFAULT_LOGGER
-    end
   end
 end
